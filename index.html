@@ -10,31 +10,118 @@
   <div id="root" class="fade-in">
     <header class="header">
       <h1>Mock Exam — Nigeria Recruitment</h1>
-      <p class="sub">Practice tests for Immigration, Fire, Civil Defence & Correctional services — 30 minutes, 50 questions.</p>
+      <p class="sub">Practice tests for Immigration, Fire, Civil Defence & Correctional — 30 minutes, 50 questions.</p>
     </header>
 
     <main id="main" class="card">
-      <!-- Landing / category selector -->
+      <!-- Landing / category selector (cards) -->
       <section id="landing" class="section">
         <h2 class="section-title">Choose a category</h2>
-        <div class="categories">
-          <button class="cat-btn" data-key="nis">Nigeria Immigration Service</button>
-          <button class="cat-btn" data-key="nfs">Nigeria Fire Service</button>
-          <button class="cat-btn" data-key="nscdc">Nigeria Civil Defence Service</button>
-          <button class="cat-btn" data-key="ncos">Nigeria Correctional Service</button>
-        </div>
+        <div class="grid-cats">
+          <div class="cat-card" data-key="nis">
+            <div class="cat-title">Nigeria Immigration Service</div>
+            <div class="cat-sub">50 random questions from NIS pool</div>
+            <div class="card-actions">
+              <button class="select-btn">Select</button>
+              <button class="start-btn hidden">Start Exam</button>
+            </div>
+          </div>
 
-        <div id="selectedWrap" class="selected-wrap hidden fade-in">
-          <div id="selectedText" class="selected-text"></div>
-          <button id="startNowBtn" class="primary">Start Exam</button>
+          <div class="cat-card" data-key="nfs">
+            <div class="cat-title">Nigeria Fire Service</div>
+            <div class="cat-sub">50 random questions from Fire pool</div>
+            <div class="card-actions">
+              <button class="select-btn">Select</button>
+              <button class="start-btn hidden">Start Exam</button>
+            </div>
+          </div>
+
+          <div class="cat-card" data-key="nscdc">
+            <div class="cat-title">Nigeria Civil Defence Service</div>
+            <div class="cat-sub">50 random questions from Civil Defence pool</div>
+            <div class="card-actions">
+              <button class="select-btn">Select</button>
+              <button class="start-btn hidden">Start Exam</button>
+            </div>
+          </div>
+
+          <div class="cat-card" data-key="ncos">
+            <div class="cat-title">Nigeria Correctional Service</div>
+            <div class="cat-sub">50 random questions from Correctional pool</div>
+            <div class="card-actions">
+              <button class="select-btn">Select</button>
+              <button class="start-btn hidden">Start Exam</button>
+            </div>
+          </div>
         </div>
 
         <div id="landingNote" class="note">
-          <small>Each test: 50 random questions drawn from a 70-question pool. Camera & mic permissions required when you start.</small>
+          <small>Each test: 50 random questions drawn from a 70-question pool. Camera & mic required for monitoring.</small>
         </div>
       </section>
 
       <!-- Exam UI -->
+      <section id="exam" class="section hidden">
+        <div class="exam-top">
+          <div class="exam-info">
+            <div id="examCategory" class="exam-category">Category</div>
+            <div id="qIndicator" class="q-indicator">Question 1 of 50</div>
+          </div>
+          <div class="exam-controls">
+            <div id="timer" class="timer">30:00</div>
+            <div id="warnWrap" class="warn-wrap">Warnings: <span id="warnCount">0</span>/3</div>
+          </div>
+        </div>
+
+        <div id="questionCard" class="question-card fade-in">
+          <div id="questionText" class="question-text"></div>
+          <div id="optionsList" class="options-list"></div>
+        </div>
+
+        <div class="nav-row">
+          <button id="prevBtn" class="muted">Previous</button>
+          <button id="nextBtn" class="primary">Next</button>
+          <button id="submitBtn" class="danger hidden">Submit Exam</button>
+        </div>
+      </section>
+
+      <!-- Result UI -->
+      <section id="result" class="section hidden">
+        <h2>Results</h2>
+        <div id="resultSummary" class="result-summary"></div>
+        <div id="missedContainer" class="missed-container"></div>
+        <div style="margin-top:12px;">
+          <button id="retakeBtn" class="primary">Back to Home</button>
+        </div>
+      </section>
+
+      <!-- Fallback / missing file -->
+      <section id="fallback" class="section hidden">
+        <h3>Question file missing</h3>
+        <p id="fallbackText">The question file for this category was not found. Add the corresponding `*_questions.js` file to the site.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>Designed by <strong>Dleysam</strong> • <a id="whatsappLink" href="https://wa.me/2348125651134?text=Hello%20Dleysam%2C%20I%27m%20interested%20in%20your%20Mock%20Exam%20App" target="_blank" rel="noopener">WhatsApp 08125651134</a></div>
+    </footer>
+  </div>
+
+  <!-- camera preview container -->
+  <div id="cameraPreview" class="hidden"><video id="previewVideo" autoplay muted playsinline></video></div>
+
+  <!-- face-api.js -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <!-- question banks (NIS already present) -->
+  <script src="nis_questions.js"></script>
+  <script src="fire_service_questions.js"></script>
+  <script src="civil_defence_questions.js"></script>
+  <script src="correctional_questions.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>      <!-- Exam UI -->
       <section id="exam" class="section hidden">
         <div class="exam-top">
           <div class="exam-info">
