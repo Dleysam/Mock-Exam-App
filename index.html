@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nigeria Recruitment Mock Exam</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <h1>Mock Exam — Nigeria Recruitment</h1>
+
+    <section id="setup">
+      <label for="category">Choose category:</label>
+      <select id="category">
+        <option value="">-- Select --</option>
+        <option value="nis">Nigeria Immigration Service</option>
+        <option value="nfs">Nigeria Fire Service</option>
+        <option value="nscdc">Nigeria Civil Defence Service</option>
+        <option value="ncos">Nigeria Correctional Service</option>
+      </select>
+
+      <div class="uploader">
+        <p><strong>Upload / Paste JSON for selected category</strong></p>
+        <input id="fileInput" type="file" accept=".json"/>
+        <button id="pasteBtn">Paste JSON (open text prompt)</button>
+        <small>Each JSON file should be an array of question objects (id, question, options {A,B,C,D}, answer, explanation).</small>
+      </div>
+
+      <div style="margin-top:10px;">
+        <button id="startBtn">Start Exam (30 mins)</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </section>
+
+    <section id="exam" class="hidden">
+      <div class="topbar">
+        <div id="timer">30:00</div>
+        <div id="warnings">Warnings: <span id="warnCount">0</span>/3</div>
+        <div id="permStatus">Permissions: <span id="permText">Not asked</span></div>
+      </div>
+
+      <div id="videoWrap">
+        <video id="video" autoplay muted playsinline width="300"></video>
+      </div>
+
+      <div id="questionArea"></div>
+
+      <div style="margin-top:12px;">
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+        <button id="submitBtn">Submit Now</button>
+      </div>
+    </section>
+
+    <section id="result" class="hidden">
+      <h2>Result</h2>
+      <div id="score"></div>
+      <div id="missedList"></div>
+      <button id="restartBtn">Back to Start</button>
+    </section>
+
+    <footer>
+      <small>Run on Android Chrome / Firefox. Allow camera & mic when prompted.</small>
+    </footer>
+  </div>
+
+  <!-- face-api.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
