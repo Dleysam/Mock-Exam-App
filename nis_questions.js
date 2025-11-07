@@ -1,6 +1,10 @@
-const nisQuestions = [ 
-    { question: "If a student is chosen...", options: [...], answer: "C", explanation: "..." },
-    ...
+const nisQuestions = [
+  {
+    question: "Who is the head of the Nigeria Immigration Service?",
+    options: ["Comptroller General", "Inspector General", "Commandant", "Director General"],
+    answer: "Comptroller General"
+  },
+  // ... more questions ...
 ];
   {
     "id": 1,
