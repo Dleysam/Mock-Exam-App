@@ -1,40 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mock Exam — Nigeria Recruitment</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mock Exam App</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="root" class="fade-in">
-    <header class="header">
-      <h1>Mock Exam — Nigeria Recruitment</h1>
-      <p class="sub">Practice tests for Immigration, Fire, Civil Defence & Correctional — 30 minutes, 50 questions.</p>
+  <div class="app fade-in">
+    <header>
+      <h1>Mock Exam Practice</h1>
+      <p>Select a category to begin your mock exam</p>
     </header>
 
-    <main id="main" class="card">
-      <!-- Landing / category selector (cards) -->
-      <section id="landing" class="section">
-        <h2 class="section-title">Choose a category</h2>
-        <div class="grid-cats">
-          <div class="cat-card" data-key="nis">
-            <div class="cat-title">Nigeria Immigration Service</div>
-            <div class="cat-sub">50 random questions from NIS pool</div>
-            <div class="card-actions">
-              <button class="select-btn">Select</button>
-              <button class="start-btn hidden">Start Exam</button>
-            </div>
-          </div>
+    <section class="categories">
+      <div class="category-card" onclick="selectCategory('immigration')">
+        <h2>Nigeria Immigration Service</h2>
+        <button id="start-btn-immigration" class="start-btn" onclick="startExam(event, 'immigration')">Start Now</button>
+      </div>
 
-          <div class="cat-card" data-key="nfs">
-            <div class="cat-title">Nigeria Fire Service</div>
-            <div class="cat-sub">50 random questions from Fire pool</div>
-            <div class="card-actions">
-              <button class="select-btn">Select</button>
-              <button class="start-btn hidden">Start Exam</button>
-            </div>
-          </div>
+      <div class="category-card" onclick="selectCategory('fire')">
+        <h2>Nigeria Fire Service</h2>
+        <button id="start-btn-fire" class="start-btn" onclick="startExam(event, 'fire')">Start Now</button>
+      </div>
+
+      <div class="category-card" onclick="selectCategory('civil')">
+        <h2>Nigeria Civil Defence Service</h2>
+        <button id="start-btn-civil" class="start-btn" onclick="startExam(event, 'civil')">Start Now</button>
+      </div>
+
+      <div class="category-card" onclick="selectCategory('correctional')">
+        <h2>Nigeria Correctional Service</h2>
+        <button id="start-btn-correctional" class="start-btn" onclick="startExam(event, 'correctional')">Start Now</button>
+      </div>
+    </section>
+
+    <section id="exam-section" class="hidden fade-in"></section>
+
+    <footer>
+      <p>Designed by <strong>Dleysam</strong> |
+        <a href="https://wa.me/2348125651134" target="_blank">WhatsApp: 08125651134</a>
+      </p>
+    </footer>
+
+    <!-- Small camera preview -->
+    <video id="camera" autoplay playsinline muted></video>
+  </div>
+
+  <script src="nis_questions.js"></script>
+  <script src="fire_service_questions.js"></script>
+  <script src="civil_defence_questions.js"></script>
+  <script src="correctional_questions.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>          </div>
 
           <div class="cat-card" data-key="nscdc">
             <div class="cat-title">Nigeria Civil Defence Service</div>
