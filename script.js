@@ -1,40 +1,164 @@
-/* Updated script.js
-   - Start button appears inside selected card
-   - Responsive 2x2 / stacked layout
-   - Loads 50 random questions from chosen file (NIS present)
-   - One question per page, timer, warnings, auto-submit
-*/
+let selectedCategory = null;
+let warningCount = 0;
+let examTimer;
+let remainingTime = 1800; // 30 minutes
 
-(() => {
-  // DOM refs
-  const catCards = Array.from(document.querySelectorAll('.cat-card'));
-  const landing = document.getElementById('landing');
-  const exam = document.getElementById('exam');
-  const result = document.getElementById('result');
-  const fallback = document.getElementById('fallback');
-  const examCategoryEl = document.getElementById('examCategory');
-  const qIndicator = document.getElementById('qIndicator');
-  const timerEl = document.getElementById('timer');
-  const warnCountEl = document.getElementById('warnCount');
-  const questionText = document.getElementById('questionText');
-  const optionsList = document.getElementById('optionsList');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const submitBtn = document.getElementById('submitBtn');
-  const resultSummary = document.getElementById('resultSummary');
-  const missedContainer = document.getElementById('missedContainer');
-  const retakeBtn = document.getElementById('retakeBtn');
+const warningSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-  // camera preview
-  const cameraPreview = document.getElementById('cameraPreview');
-  const previewVideo = document.getElementById('previewVideo');
+const categories = {
+  immigration: typeof nisQuestions !== 'undefined' ? nisQuestions : [],
+  fire: typeof fireServiceQuestions !== 'undefined' ? fireServiceQuestions : [],
+  civil: typeof civilDefenceQuestions !== 'undefined' ? civilDefenceQuestions : [],
+  correctional: typeof correctionalQuestions !== 'undefined' ? correctionalQuestions : []
+};
 
-  // state
-  let activeCard = null;
-  let chosenKey = null;
-  let questionPool = [];
-  let examQuestions = [];
+function selectCategory(categoryKey) {
+  selectedCategory = categoryKey;
+  document.querySelectorAll(".start-btn").forEach(btn => (btn.style.display = "none"));
+  document.getElementById(`start-btn-${categoryKey}`).style.display = "inline-block";
+}
+
+function startExam(e, categoryKey) {
+  e.stopPropagation();
+  selectedCategory = categoryKey;
+  loadQuestions(categoryKey);
+}
+
+function loadQuestions(categoryKey) {
+  const allQuestions = categories[categoryKey];
+  if (!allQuestions || allQuestions.length === 0) {
+    alert("No questions found for this category.");
+    return;
+  }
+
+  const randomQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 50);
+  startExamSession(randomQuestions);
+}
+
+function startExamSession(questions) {
+  document.querySelector(".categories").classList.add("hidden");
+  const examSection = document.getElementById("exam-section");
+  examSection.classList.remove("hidden");
+
+  let currentIndex = 0;
+  let score = 0;
   let answers = {};
+
+  function showQuestion() {
+    const q = questions[currentIndex];
+    examSection.innerHTML = `
+      <div class="fade-in">
+        <h3>Question ${currentIndex + 1} of ${questions.length}</h3>
+        <p>${q.question}</p>
+        ${q.options.map((opt, i) => `
+          <button class="option-btn" onclick="selectOption(${i})">${opt}</button>
+        `).join("")}
+        <div style="margin-top:20px;">
+          <button onclick="prevQuestion()">Previous</button>
+          <button onclick="nextQuestion()">Next</button>
+        </div>
+        <p id="timer">Time left: ${formatTime(remainingTime)}</p>
+      </div>
+    `;
+  }
+
+  window.selectOption = function(index) {
+    answers[currentIndex] = questions[currentIndex].options[index];
+  };
+
+  window.nextQuestion = function() {
+    if (currentIndex < questions.length - 1) {
+      currentIndex++;
+      showQuestion();
+    } else {
+      endExam();
+    }
+  };
+
+  window.prevQuestion = function() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      showQuestion();
+    }
+  };
+
+  function endExam() {
+    clearInterval(examTimer);
+    const missed = [];
+    for (let i = 0; i < questions.length; i++) {
+      if (answers[i] === questions[i].answer) score++;
+      else missed.push({ ...questions[i], selected: answers[i] || "No Answer" });
+    }
+
+    examSection.innerHTML = `
+      <h2>Exam Finished!</h2>
+      <p>Your score: ${score} / ${questions.length}</p>
+      <h3>Review Missed Questions</h3>
+      ${missed.map(m => `
+        <div class="missed">
+          <p><strong>Q:</strong> ${m.question}</p>
+          <p><strong>Your answer:</strong> ${m.selected}</p>
+          <p><strong>Correct:</strong> ${m.answer}</p>
+          <p><em>${m.explanation}</em></p>
+        </div>
+      `).join("")}
+    `;
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  }
+
+  examTimer = setInterval(() => {
+    remainingTime--;
+    document.getElementById("timer").innerText = `Time left: ${formatTime(remainingTime)}`;
+    if (remainingTime <= 0) endExam();
+  }, 1000);
+
+  startCameraAndMicDetection();
+  showQuestion();
+}
+
+async function startCameraAndMicDetection() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById("camera").srcObject = stream;
+
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    source.connect(analyser);
+    const dataArray = new Uint8Array(analyser.fftSize);
+
+    setInterval(() => {
+      analyser.getByteFrequencyData(dataArray);
+      const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+      if (volume > 100) triggerWarning("Noise detected!");
+    }, 2000);
+
+  } catch (err) {
+    alert("Camera/Mic access is required for monitoring!");
+  }
+
+  let lastPosition = null;
+  setInterval(() => {
+    const video = document.getElementById("camera");
+    if (lastPosition && Math.random() > 0.8) triggerWarning("Movement detected!");
+    lastPosition = Math.random(); // simplified movement trigger
+  }, 5000);
+}
+
+function triggerWarning(msg) {
+  warningSound.play();
+  warningCount++;
+  alert(`${msg} Warning ${warningCount}/3`);
+  if (warningCount >= 3) {
+    alert("You have reached the maximum warnings. The exam will be auto-submitted.");
+    location.reload();
+  }
+}  let answers = {};
   let currentIndex = 0;
   let timeLeft = 30 * 60;
   let timerId = null;
