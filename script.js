@@ -1,40 +1,431 @@
-// script.js
-// Core app logic for Mock Exam with webcam + mic detection
-const CATEGORY_KEYS = ['nis','nfs','nscdc','ncos'];
-const LS_KEY = 'mock_exam_questions_v1';
+/* script.js
+  - One question per page
+  - 30min timer
+  - random 50/70 from pool
+  - camera + mic detection (noise + movement)
+  - beep on warning
+  - auto-submit on 3 warnings
+*/
 
-let questionPools = loadPoolsFromStorage(); // format: { nis: [...], nfs: [...], ... }
+(() => {
+  // DOM
+  const landing = document.getElementById('landing');
+  const exam = document.getElementById('exam');
+  const result = document.getElementById('result');
+  const fallback = document.getElementById('fallback');
+  const selectedWrap = document.getElementById('selectedWrap');
+  const selectedText = document.getElementById('selectedText');
+  const startNowBtn = document.getElementById('startNowBtn');
+  const categoryButtons = Array.from(document.querySelectorAll('.cat-btn'));
+  const examCategoryEl = document.getElementById('examCategory');
+  const qIndicator = document.getElementById('qIndicator');
+  const timerEl = document.getElementById('timer');
+  const warnCountEl = document.getElementById('warnCount');
+  const questionText = document.getElementById('questionText');
+  const optionsList = document.getElementById('optionsList');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const resultSummary = document.getElementById('resultSummary');
+  const missedContainer = document.getElementById('missedContainer');
+  const retakeBtn = document.getElementById('retakeBtn');
 
-const categorySelect = document.getElementById('category');
-const fileInput = document.getElementById('fileInput');
-const pasteBtn = document.getElementById('pasteBtn');
-const startBtn = document.getElementById('startBtn');
-const statusDiv = document.getElementById('status');
+  // camera preview element
+  const cameraPreview = document.createElement('div');
+  cameraPreview.id = 'cameraPreview';
+  cameraPreview.className = 'hidden';
+  cameraPreview.innerHTML = '<video id="previewVideo" autoplay muted playsinline></video>';
+  document.body.appendChild(cameraPreview);
+  const previewVideo = document.getElementById('previewVideo');
 
-const examSection = document.getElementById('exam');
-const setupSection = document.getElementById('setup');
-const resultSection = document.getElementById('result');
+  // state
+  let chosenKey = null;
+  let questionPool = []; // full pool from chosen category
+  let examQuestions = []; // chosen 50 shuffled
+  let answers = {}; // id -> answer letter
+  let currentIndex = 0;
+  let timerId = null;
+  let timeLeft = 30 * 60; // seconds
+  let warnCount = 0;
 
-const timerEl = document.getElementById('timer');
-const warningsEl = document.getElementById('warnCount');
-const permText = document.getElementById('permText');
-const video = document.getElementById('video');
-const questionArea = document.getElementById('questionArea');
+  // media
+  let mediaStream = null;
+  let audioCtx = null;
+  let analyser = null;
+  let faceModelLoaded = false;
+  let detectionInterval = null;
+  let recentWarnings = [];
 
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const submitBtn = document.getElementById('submitBtn');
-const restartBtn = document.getElementById('restartBtn');
+  // beep generator
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.value = 0.0001;
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      // ramp up fast then down
+      g.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+      g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      setTimeout(()=>{ try{ o.stop(); ctx.close(); }catch(e){} }, 300);
+    } catch(e){ console.warn('beep error', e); }
+  }
 
-let currentCategory = '';
-let examQuestions = []; // chosen 50
-let answers = {}; // id -> chosen option 'A'|'B'...
-let currentIndex = 0;
-let timerInterval = null;
-let timeLeftSec = 30 * 60;
-let warnCount = 0;
+  // util: show / hide
+  function show(el){ el.classList.remove('hidden'); }
+  function hide(el){ el.classList.add('hidden'); }
 
-// Media detection
+  // Category select handlers
+  categoryButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      categoryButtons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      chosenKey = btn.dataset.key;
+      const label = btn.textContent.trim();
+      selectedText.textContent = `Selected: ${label}`;
+      show(selectedWrap);
+      // animate start button
+      startNowBtn.focus();
+    });
+  });
+
+  // start exam button
+  startNowBtn.addEventListener('click', async () => {
+    if(!chosenKey) return alert('Choose a category first.');
+    // map key to question variable
+    switch(chosenKey){
+      case 'nis':
+        if(typeof NIS_QUESTIONS === 'undefined') return showFallback('NIS questions file not loaded.');
+        questionPool = Array.isArray(NIS_QUESTIONS) ? NIS_QUESTIONS.slice() : [];
+        break;
+      case 'nfs':
+        if(typeof FIRE_QUESTIONS === 'undefined') return showFallback('Fire Service questions file not loaded.');
+        questionPool = Array.isArray(FIRE_QUESTIONS) ? FIRE_QUESTIONS.slice() : [];
+        break;
+      case 'nscdc':
+        if(typeof CIVIL_DEFENCE_QUESTIONS === 'undefined') return showFallback('Civil Defence questions file not loaded.');
+        questionPool = Array.isArray(CIVIL_DEFENCE_QUESTIONS) ? CIVIL_DEFENCE_QUESTIONS.slice() : [];
+        break;
+      case 'ncos':
+        if(typeof CORRECTIONAL_QUESTIONS === 'undefined') return showFallback('Correctional questions file not loaded.');
+        questionPool = Array.isArray(CORRECTIONAL_QUESTIONS) ? CORRECTIONAL_QUESTIONS.slice() : [];
+        break;
+      default:
+        return showFallback('Unknown category.');
+    }
+
+    if(questionPool.length === 0) return showFallback('Question pool is empty for this category.');
+
+    // pick random 50
+    examQuestions = pickRandom(questionPool, Math.min(50, questionPool.length));
+    answers = {};
+    currentIndex = 0;
+    timeLeft = 30 * 60;
+    warnCount = 0;
+    warnCountEl.textContent = warnCount;
+
+    // UI switch
+    hide(landing);
+    hide(selectedWrap);
+    hide(result);
+    hide(fallback);
+    show(exam);
+    examCategoryEl.textContent = getCategoryLabel(chosenKey);
+    renderQuestion();
+    startTimer();
+    await startMedia();
+    loadFaceModelsAsync();
+  });
+
+  function showFallback(msg){
+    document.getElementById('fallbackText').textContent = msg;
+    hide(landing); hide(exam); hide(result);
+    show(fallback);
+  }
+
+  // Helper: pick Random
+  function pickRandom(arr, k){
+    const copy = arr.slice();
+    const out = [];
+    while(out.length < k && copy.length){
+      const i = Math.floor(Math.random()*copy.length);
+      out.push(copy.splice(i,1)[0]);
+    }
+    return out;
+  }
+
+  function getCategoryLabel(key){
+    if(key==='nis') return 'Nigeria Immigration Service';
+    if(key==='nfs') return 'Nigeria Fire Service';
+    if(key==='nscdc') return 'Nigeria Civil Defence Service';
+    if(key==='ncos') return 'Nigeria Correctional Service';
+    return 'Category';
+  }
+
+  // Render question
+  function renderQuestion(){
+    const q = examQuestions[currentIndex];
+    if(!q) return;
+    qIndicator.textContent = `Question ${currentIndex+1} of ${examQuestions.length}`;
+    questionText.innerHTML = `<span>${escapeHtml(q.question)}</span>`;
+    optionsList.innerHTML = '';
+    const opts = q.options || {};
+    ['A','B','C','D'].forEach(letter => {
+      if(!opts[letter]) return;
+      const el = document.createElement('div');
+      el.className = 'option';
+      el.dataset.opt = letter;
+      el.innerHTML = `<strong>${letter}.</strong> ${escapeHtml(opts[letter])}`;
+      if(answers[q.id] === letter) el.classList.add('selected');
+      el.addEventListener('click', () => {
+        // select
+        Array.from(optionsList.children).forEach(c=>c.classList.remove('selected'));
+        el.classList.add('selected');
+        answers[q.id] = letter;
+      });
+      optionsList.appendChild(el);
+    });
+
+    // next/prev buttons show/hide
+    prevBtn.disabled = currentIndex === 0;
+    if(currentIndex === examQuestions.length - 1){
+      hide(nextBtn);
+      show(submitBtn);
+    } else {
+      show(nextBtn);
+      hide(submitBtn);
+    }
+  }
+
+  // nav buttons
+  prevBtn.addEventListener('click', () => {
+    if(currentIndex > 0){ currentIndex--; renderQuestion(); }
+  });
+  nextBtn.addEventListener('click', () => {
+    if(currentIndex < examQuestions.length - 1){ currentIndex++; renderQuestion(); }
+  });
+  submitBtn.addEventListener('click', () => {
+    if(confirm('Submit exam now?')) finishExam('User submitted');
+  });
+
+  // Timer
+  function startTimer(){
+    updateTimerUI();
+    if(timerId) clearInterval(timerId);
+    timerId = setInterval(()=>{
+      timeLeft--;
+      updateTimerUI();
+      if(timeLeft <= 0){
+        clearInterval(timerId);
+        finishExam('Time elapsed');
+      }
+    },1000);
+  }
+
+  function updateTimerUI(){
+    const m = Math.floor(timeLeft/60).toString().padStart(2,'0');
+    const s = (timeLeft%60).toString().padStart(2,'0');
+    timerEl.textContent = `${m}:${s}`;
+  }
+
+  // finish exam: scoring + results
+  function finishExam(reason){
+    stopMedia();
+    if(timerId) clearInterval(timerId);
+    // scoring
+    let correct = 0;
+    const missed = [];
+    examQuestions.forEach(q=>{
+      const ans = answers[q.id];
+      if(ans && ans === q.answer) correct++;
+      else missed.push({ q, given: ans || null });
+    });
+    const percent = Math.round((correct / examQuestions.length) * 100);
+    resultSummary.innerHTML = `<div>Answered: ${Object.keys(answers).length}/${examQuestions.length}</div>
+      <div>Correct: ${correct}</div><div>Score: ${percent}%</div>
+      <div style="margin-top:6px;color:var(--muted);font-size:13px;">Auto-submit reason: ${escapeHtml(reason)}</div>`;
+
+    // missed list
+    if(missed.length === 0){
+      missedContainer.innerHTML = `<p>All correct — excellent!</p>`;
+    } else {
+      const ol = document.createElement('ol');
+      missed.forEach(m=>{
+        const li = document.createElement('li');
+        li.style.marginBottom = '10px';
+        li.innerHTML = `<div style="font-weight:700">${escapeHtml(m.q.question)}</div>
+          <div>Correct: <strong>${m.q.answer}. ${escapeHtml(m.q.options?.[m.q.answer] || '')}</strong></div>
+          <div>Your answer: <em>${escapeHtml(m.given || 'No answer')}</em></div>
+          ${m.q.explanation ? `<div style="color:var(--muted);font-size:13px;">Explanation: ${escapeHtml(m.q.explanation)}</div>` : ''}`;
+        ol.appendChild(li);
+      });
+      missedContainer.innerHTML = '';
+      missedContainer.appendChild(ol);
+    }
+
+    // UI
+    hide(exam);
+    show(result);
+  }
+
+  retakeBtn.addEventListener('click', () => {
+    // reset
+    hide(result); show(landing); show(selectedWrap);
+    // stop streams if any
+    stopMedia();
+  });
+
+  // ------------------------
+  // Media: camera + mic detection
+  // ------------------------
+  async function startMedia(){
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: 'user' } });
+      // show preview
+      previewVideo.srcObject = new MediaStream([mediaStream.getVideoTracks()[0]]);
+      show(cameraPreview);
+
+      // audio analysis
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(mediaStream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      // detection loop
+      detectionInterval = setInterval(async () => {
+        detectNoise();
+        await detectFaceAndMovement();
+      }, 900);
+    } catch (e){
+      console.warn('Media start failed', e);
+      alert('Camera & microphone access denied or unavailable. Monitoring will be disabled, but you can still take the test.');
+    }
+  }
+
+  function stopMedia(){
+    if(detectionInterval) clearInterval(detectionInterval);
+    if(mediaStream){
+      mediaStream.getTracks().forEach(t=>t.stop());
+      mediaStream = null;
+    }
+    if(audioCtx){
+      try { audioCtx.close(); } catch(e){}
+      audioCtx = null;
+    }
+    if(previewVideo) previewVideo.srcObject = null;
+    hide(cameraPreview);
+  }
+
+  // noise detection via RMS
+  function detectNoise(){
+    if(!analyser) return;
+    const buf = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for(let i=0;i<buf.length;i++) sum += buf[i]*buf[i];
+    const rms = Math.sqrt(sum / buf.length);
+    const THRESH = 0.06; // tweakable
+    if(rms > THRESH) registerWarning('Noise detected');
+  }
+
+  // face detection using face-api.js (tiny face detector)
+  async function loadFaceModelsAsync(){
+    try {
+      // loads from CDN weights path
+      await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/');
+      faceModelLoaded = true;
+    } catch(e){
+      console.warn('face model load failed', e);
+    }
+  }
+
+  let lastCenter = null;
+  async function detectFaceAndMovement(){
+    if(!previewVideo || previewVideo.readyState < 2) return;
+    if(!faceModelLoaded) return; // skip until model ready
+    try {
+      const results = await faceapi.detectAllFaces(previewVideo, new faceapi.TinyFaceDetectorOptions());
+      const count = results.length;
+      if(count === 0) {
+        registerWarning('Face not detected');
+      } else if(count > 1) {
+        registerWarning('Multiple faces detected');
+      } else {
+        const box = results[0].box;
+        const center = { x: box.x + box.width/2, y: box.y + box.height/2 };
+        if(lastCenter){
+          const dx = Math.abs(center.x - lastCenter.x);
+          const dy = Math.abs(center.y - lastCenter.y);
+          const move = Math.sqrt(dx*dx + dy*dy);
+          const moveThreshold = (previewVideo.videoWidth || 320) * 0.14;
+          if(move > moveThreshold) registerWarning('Sudden movement detected');
+        }
+        lastCenter = center;
+      }
+    } catch(e){
+      console.warn('face detection error', e);
+    }
+  }
+
+  // register warning (throttled)
+  function registerWarning(msg){
+    const now = Date.now();
+    // throttle same message
+    const previous = recentWarnings.find(r => r.msg === msg);
+    if(previous && (now - previous.ts) < 3500) return;
+    recentWarnings.push({ msg, ts: now });
+
+    warnCount++;
+    warnCountEl.textContent = warnCount;
+    // show temporary alert
+    alertSmall(msg + ' — warning ' + warnCount + '/3');
+    beep();
+
+    if(warnCount >= 3){
+      finishExam('3 warnings reached (' + msg + ')');
+    }
+  }
+
+  function alertSmall(text){
+    // small non-blocking overlay for short time
+    const el = document.createElement('div');
+    el.style.position = 'fixed';
+    el.style.left = '50%';
+    el.style.top = '18px';
+    el.style.transform = 'translateX(-50%)';
+    el.style.background = 'linear-gradient(90deg,#ff8a8a,#ff5252)';
+    el.style.color = '#012';
+    el.style.padding = '8px 14px';
+    el.style.borderRadius = '8px';
+    el.style.fontWeight = '700';
+    el.style.zIndex = '99999';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(()=>{ el.remove(); }, 2200);
+  }
+
+  // small helpers
+  function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // click outside camera preview to toggle visibility (optional)
+  cameraPreview.addEventListener('click', ()=> {
+    cameraPreview.classList.toggle('hidden');
+  });
+
+  // basic keyboard handlers for convenience (Next = right arrow)
+  document.addEventListener('keydown', (e)=>{
+    if(exam.classList.contains('hidden')) return;
+    if(e.key === 'ArrowRight') nextBtn.click();
+    if(e.key === 'ArrowLeft') prevBtn.click();
+  });
+
+  // end
+})();// Media detection
 let audioContext, analyser, mediaStreamSource;
 let micStream;
 let faceModelLoaded = false;
