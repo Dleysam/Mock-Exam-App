@@ -3,38 +3,97 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Nigeria Recruitment Mock Exam</title>
+  <title>Mock Exam — Nigeria Recruitment</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <h1>Mock Exam — Nigeria Recruitment</h1>
+  <div id="root" class="fade-in">
+    <header class="header">
+      <h1>Mock Exam — Nigeria Recruitment</h1>
+      <p class="sub">Practice tests for Immigration, Fire, Civil Defence & Correctional services — 30 minutes, 50 questions.</p>
+    </header>
 
-    <section id="setup">
-      <label for="category">Choose category:</label>
-      <select id="category">
-        <option value="">-- Select --</option>
-        <option value="nis">Nigeria Immigration Service</option>
-        <option value="nfs">Nigeria Fire Service</option>
-        <option value="nscdc">Nigeria Civil Defence Service</option>
-        <option value="ncos">Nigeria Correctional Service</option>
-      </select>
+    <main id="main" class="card">
+      <!-- Landing / category selector -->
+      <section id="landing" class="section">
+        <h2 class="section-title">Choose a category</h2>
+        <div class="categories">
+          <button class="cat-btn" data-key="nis">Nigeria Immigration Service</button>
+          <button class="cat-btn" data-key="nfs">Nigeria Fire Service</button>
+          <button class="cat-btn" data-key="nscdc">Nigeria Civil Defence Service</button>
+          <button class="cat-btn" data-key="ncos">Nigeria Correctional Service</button>
+        </div>
 
-      <div class="uploader">
-        <p><strong>Upload / Paste JSON for selected category</strong></p>
-        <input id="fileInput" type="file" accept=".json"/>
-        <button id="pasteBtn">Paste JSON (open text prompt)</button>
-        <small>Each JSON file should be an array of question objects (id, question, options {A,B,C,D}, answer, explanation).</small>
-      </div>
+        <div id="selectedWrap" class="selected-wrap hidden fade-in">
+          <div id="selectedText" class="selected-text"></div>
+          <button id="startNowBtn" class="primary">Start Exam</button>
+        </div>
 
-      <div style="margin-top:10px;">
-        <button id="startBtn">Start Exam (30 mins)</button>
-      </div>
+        <div id="landingNote" class="note">
+          <small>Each test: 50 random questions drawn from a 70-question pool. Camera & mic permissions required when you start.</small>
+        </div>
+      </section>
 
-      <div id="status" class="status"></div>
-    </section>
+      <!-- Exam UI -->
+      <section id="exam" class="section hidden">
+        <div class="exam-top">
+          <div class="exam-info">
+            <div id="examCategory" class="exam-category">Category</div>
+            <div id="qIndicator" class="q-indicator">Question 1 of 50</div>
+          </div>
+          <div class="exam-controls">
+            <div id="timer" class="timer">30:00</div>
+            <div id="warnWrap" class="warn-wrap">Warnings: <span id="warnCount">0</span>/3</div>
+          </div>
+        </div>
 
-    <section id="exam" class="hidden">
+        <div id="questionCard" class="question-card fade-in">
+          <div id="questionText" class="question-text"></div>
+          <div id="optionsList" class="options-list"></div>
+        </div>
+
+        <div class="nav-row">
+          <button id="prevBtn" class="muted">Previous</button>
+          <button id="nextBtn" class="primary">Next</button>
+          <button id="submitBtn" class="danger hidden">Submit Exam</button>
+        </div>
+      </section>
+
+      <!-- Result UI -->
+      <section id="result" class="section hidden">
+        <h2>Results</h2>
+        <div id="resultSummary" class="result-summary"></div>
+        <div id="missedContainer" class="missed-container"></div>
+        <div style="margin-top:12px;">
+          <button id="retakeBtn" class="primary">Back to Home</button>
+        </div>
+      </section>
+
+      <!-- Fallback / uploads -->
+      <section id="fallback" class="section hidden">
+        <h3>Question file missing</h3>
+        <p id="fallbackText">The question file for this category was not found in the site. You can paste JSON into the app later or upload the file to the repo.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>Designed by <strong>Dleysam</strong> • <a id="whatsappLink" href="https://wa.me/2348125651134?text=Hello%20Dleysam%2C%20I%27m%20interested%20in%20your%20Mock%20Exam%20App" target="_blank" rel="noopener">WhatsApp 08125651134</a></div>
+    </footer>
+  </div>
+
+  <!-- face-api.js -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <!-- question banks (NIS present already) -->
+  <script src="nis_questions.js"></script>
+  <!-- optional: add these files when available -->
+  <script src="fire_service_questions.js"></script>
+  <script src="civil_defence_questions.js"></script>
+  <script src="correctional_questions.js"></script>
+
+  <script src="script.js"></script>
+</body>
+  </html>    <section id="exam" class="hidden">
       <div class="topbar">
         <div id="timer">30:00</div>
         <div id="warnings">Warnings: <span id="warnCount">0</span>/3</div>
