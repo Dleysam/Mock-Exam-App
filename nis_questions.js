@@ -1,4 +1,7 @@
-const NIS_QUESTIONS = [
+const nisQuestions = [ 
+    { question: "If a student is chosen...", options: [...], answer: "C", explanation: "..." },
+    ...
+];
   {
     "id": 1,
     "question": "What is the capital of Nigeria?",
