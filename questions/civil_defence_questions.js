@@ -1,5 +1,5 @@
 // inside questions/civil_defence_questions.js
-const CIVIL_DEFENCE_QUESTIONS = [ ... ];
+const CIVIL_DEFENCE_QUESTIONS = [
   {
     question: "When was the Nigeria Security and Civil Defence Corps (NSCDC) officially established as a para-military agency?",
     options: ["1967", "2003", "1984", "1999"],
