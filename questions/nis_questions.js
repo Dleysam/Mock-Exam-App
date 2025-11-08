@@ -1,10 +1,11 @@
-const nisQuestions = [
+const NIS_QUESTIONS = [
   {
-    question: "Who is the head of the Nigeria Immigration Service?",
-    options: ["Comptroller General", "Inspector General", "Commandant", "Director General"],
-    answer: "Comptroller General"
+    id: 1,
+    question: "What is the capital of Nigeria?",
+    options: { A: "Lagos", B: "Abuja", C: "Kano", D: "Ibadan" },
+    answer: "B"
   },
-  // ... more questions ...
+  // ...more
 ];
   {
     "id": 1,
