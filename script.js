@@ -1,4 +1,4 @@
-// script.js — fixed version
+// script.js — compatible with A–D option format
 
 const categoryFiles = {
   nis: "questions/nis_questions.js",
@@ -11,7 +11,7 @@ let allQuestions = [];
 let currentQuestionIndex = 0;
 let selectedAnswers = {};
 let timerInterval;
-let timeRemaining = 30 * 60; // 30 minutes
+let timeRemaining = 30 * 60;
 let currentCategory = "";
 
 // Elements
@@ -24,12 +24,12 @@ const optionsList = document.getElementById("optionsList");
 const qIndicator = document.getElementById("qIndicator");
 const timerDisplay = document.getElementById("timer");
 
-// Helper — shuffle questions
+// Helper — shuffle
 function shuffle(array) {
   return array.sort(() => Math.random() - 0.5);
 }
 
-// Load category questions dynamically
+// Load questions
 async function loadQuestions(categoryKey) {
   const filePath = categoryFiles[categoryKey];
   try {
@@ -37,22 +37,20 @@ async function loadQuestions(categoryKey) {
     if (!res.ok) throw new Error("File not found");
     const text = await res.text();
 
-    // Extract variable name dynamically (e.g. CIVIL_DEFENCE_QUESTIONS)
     const varMatch = text.match(/const\s+([A-Z0-9_]+)\s*=/);
-    if (!varMatch) throw new Error("Invalid file format");
+    if (!varMatch) throw new Error("Invalid format");
     const varName = varMatch[1];
 
-    // Evaluate the file content safely
     eval(text);
     allQuestions = shuffle(eval(varName)).slice(0, 50);
     return true;
   } catch (err) {
-    console.error("Load error:", err);
+    console.error("Error loading file:", err);
     return false;
   }
 }
 
-// Display question
+// Render question
 function renderQuestion() {
   const q = allQuestions[currentQuestionIndex];
   if (!q) return;
@@ -61,25 +59,24 @@ function renderQuestion() {
   questionText.textContent = q.question;
   optionsList.innerHTML = "";
 
-  q.options.forEach((opt, i) => {
-    const optBtn = document.createElement("button");
-    optBtn.className = "option-btn";
-    optBtn.textContent = `${String.fromCharCode(65 + i)}. ${opt}`;
-    optBtn.onclick = () => selectOption(opt);
-    if (selectedAnswers[currentQuestionIndex] === opt) {
-      optBtn.classList.add("selected");
+  for (const [key, value] of Object.entries(q.options)) {
+    const btn = document.createElement("button");
+    btn.className = "option-btn";
+    btn.textContent = `${key}. ${value}`;
+    btn.onclick = () => selectOption(key);
+    if (selectedAnswers[currentQuestionIndex] === key) {
+      btn.classList.add("selected");
     }
-    optionsList.appendChild(optBtn);
-  });
+    optionsList.appendChild(btn);
+  }
 
   document.getElementById("prevBtn").disabled = currentQuestionIndex === 0;
   document.getElementById("nextBtn").classList.toggle("hidden", currentQuestionIndex === allQuestions.length - 1);
   document.getElementById("submitBtn").classList.toggle("hidden", currentQuestionIndex < allQuestions.length - 1);
 }
 
-// Select an option
-function selectOption(opt) {
-  selectedAnswers[currentQuestionIndex] = opt;
+function selectOption(letter) {
+  selectedAnswers[currentQuestionIndex] = letter;
   renderQuestion();
 }
 
@@ -112,7 +109,7 @@ function startTimer() {
   }, 1000);
 }
 
-// Submit exam
+// Submit
 function submitExam() {
   clearInterval(timerInterval);
   exam.classList.add("hidden");
@@ -138,23 +135,20 @@ function submitExam() {
       <p><strong>${m.question}</strong></p>
       <p>Your answer: ${m.yourAnswer}</p>
       <p>Correct: ${m.answer}</p>
+      <p class="explanation"><em>${m.explanation || ""}</em></p>
     </div>
   `).join("");
 }
 
-// Retake button
-document.getElementById("retakeBtn").onclick = () => {
-  window.location.reload();
-};
+// Retake
+document.getElementById("retakeBtn").onclick = () => window.location.reload();
 
-// Start exam flow
+// Start exam
 document.querySelectorAll(".start-btn").forEach(btn => {
   btn.addEventListener("click", async e => {
-    const card = e.target.closest(".cat-card");
-    const key = card.dataset.key;
+    const key = e.target.closest(".cat-card").dataset.key;
     currentCategory = key;
-
-    landing.classList.add("hidden"); // full page exam view
+    landing.classList.add("hidden");
     exam.classList.remove("hidden");
 
     const ok = await loadQuestions(key);
