@@ -1,3 +1,7 @@
+import nisQuestions from './questions/nis_questions.js';
+import fireServiceQuestions from './questions/fire_service_questions.js';
+import civilDefenceQuestions from './questions/civil_defence_questions.js';
+import correctionalQuestions from './questions/correctional_questions.js';
 /* Updated script.js
    - Start button appears inside selected card
    - Responsive 2x2 / stacked layout
