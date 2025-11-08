@@ -1,4 +1,5 @@
-const correctionalQuestions = [
+// inside questions/correctional_questions.js
+const CORRECTIONAL_QUESTIONS = [
   {
     question: "When was the Nigeria Prison Service officially renamed to the Nigeria Correctional Service?",
     options: ["2015", "2019", "2020", "2017"],
