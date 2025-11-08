@@ -244,8 +244,7 @@
     options: { A: "International military forces", B: "Medical professionals", C: "Its personnel and private security guards", D: "Farmers" },
     answer: "C",
     explanation: "NSCDC trains both its officers and licensed private guards."
-  }
-CIVIL_DEFENCE_QUESTIONS.push(
+  },
   {
     id: 36,
     question: "Which of the following sectors benefits most directly from the NSCDC’s activities?",
