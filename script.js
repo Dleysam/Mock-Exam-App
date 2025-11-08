@@ -1,425 +1,184 @@
-/* Fixed script.js (Global Version)
-   ---------------------------------------------------------
-   - Imports removed (uses global question arrays loaded via HTML)
-   - Works with normal <script> tags in index.html
-   - Category detection, random 50 questions, warnings, timer
-   - Camera + microphone monitoring, auto-submit on 3 warnings
-   ---------------------------------------------------------
-*/
+// script.js — fixed version
 
-(() => {
-  // DOM refs
-  const catCards = Array.from(document.querySelectorAll('.cat-card'));
-  const landing = document.getElementById('landing');
-  const exam = document.getElementById('exam');
-  const result = document.getElementById('result');
-  const fallback = document.getElementById('fallback');
-  const examCategoryEl = document.getElementById('examCategory');
-  const qIndicator = document.getElementById('qIndicator');
-  const timerEl = document.getElementById('timer');
-  const warnCountEl = document.getElementById('warnCount');
-  const questionText = document.getElementById('questionText');
-  const optionsList = document.getElementById('optionsList');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const submitBtn = document.getElementById('submitBtn');
-  const resultSummary = document.getElementById('resultSummary');
-  const missedContainer = document.getElementById('missedContainer');
-  const retakeBtn = document.getElementById('retakeBtn');
+const categoryFiles = {
+  nis: "questions/nis_questions.js",
+  nfs: "questions/fire_service_questions.js",
+  nscdc: "questions/civil_defence_questions.js",
+  ncos: "questions/correctional_questions.js",
+};
 
-  // camera preview
-  const cameraPreview = document.getElementById('cameraPreview');
-  const previewVideo = document.getElementById('previewVideo');
+let allQuestions = [];
+let currentQuestionIndex = 0;
+let selectedAnswers = {};
+let timerInterval;
+let timeRemaining = 30 * 60; // 30 minutes
+let currentCategory = "";
 
-  // state
-  let activeCard = null;
-  let chosenKey = null;
-  let questionPool = [];
-  let examQuestions = [];
-  let answers = {};
-  let currentIndex = 0;
-  let timeLeft = 30 * 60;
-  let timerId = null;
-  let warnCount = 0;
+// Elements
+const landing = document.getElementById("landing");
+const exam = document.getElementById("exam");
+const fallback = document.getElementById("fallback");
+const result = document.getElementById("result");
+const questionText = document.getElementById("questionText");
+const optionsList = document.getElementById("optionsList");
+const qIndicator = document.getElementById("qIndicator");
+const timerDisplay = document.getElementById("timer");
 
-  // media
-  let mediaStream = null;
-  let audioCtx = null;
-  let analyser = null;
-  let detectionInterval = null;
-  let recentWarnings = [];
+// Helper — shuffle questions
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
 
-  // beep sound
-  function beep() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = 880;
-      g.gain.value = 0.0001;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      g.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 0.01);
-      g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
-      setTimeout(() => { try { o.stop(); ctx.close(); } catch (e) {} }, 300);
-    } catch (e) {
-      console.warn('beep error', e);
+// Load category questions dynamically
+async function loadQuestions(categoryKey) {
+  const filePath = categoryFiles[categoryKey];
+  try {
+    const res = await fetch(filePath);
+    if (!res.ok) throw new Error("File not found");
+    const text = await res.text();
+
+    // Extract variable name dynamically (e.g. CIVIL_DEFENCE_QUESTIONS)
+    const varMatch = text.match(/const\s+([A-Z0-9_]+)\s*=/);
+    if (!varMatch) throw new Error("Invalid file format");
+    const varName = varMatch[1];
+
+    // Evaluate the file content safely
+    eval(text);
+    allQuestions = shuffle(eval(varName)).slice(0, 50);
+    return true;
+  } catch (err) {
+    console.error("Load error:", err);
+    return false;
+  }
+}
+
+// Display question
+function renderQuestion() {
+  const q = allQuestions[currentQuestionIndex];
+  if (!q) return;
+
+  qIndicator.textContent = `Question ${currentQuestionIndex + 1} of ${allQuestions.length}`;
+  questionText.textContent = q.question;
+  optionsList.innerHTML = "";
+
+  q.options.forEach((opt, i) => {
+    const optBtn = document.createElement("button");
+    optBtn.className = "option-btn";
+    optBtn.textContent = `${String.fromCharCode(65 + i)}. ${opt}`;
+    optBtn.onclick = () => selectOption(opt);
+    if (selectedAnswers[currentQuestionIndex] === opt) {
+      optBtn.classList.add("selected");
     }
-  }
-
-  // helpers
-  function show(el) { el.classList.remove('hidden'); }
-  function hide(el) { el.classList.add('hidden'); }
-  function escapeHtml(s = '') {
-    return String(s).replace(/[&<>"']/g, c =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
-    );
-  }
-
-  // -------------------------
-  // Category card selection
-  // -------------------------
-  catCards.forEach(card => {
-    const selectBtn = card.querySelector('.select-btn');
-    const startBtn = card.querySelector('.start-btn');
-
-    selectBtn.addEventListener('click', () => {
-      // clear previous
-      catCards.forEach(c => {
-        c.classList.remove('active');
-        c.querySelector('.start-btn').classList.add('hidden');
-      });
-
-      card.classList.add('active');
-      startBtn.classList.remove('hidden');
-      activeCard = card;
-      chosenKey = card.dataset.key;
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-
-    startBtn.addEventListener('click', async () => {
-      if (!chosenKey) return alert('Choose a category first.');
-
-      // load question pool based on chosenKey
-      switch (chosenKey) {
-        case 'nis':
-          if (typeof NIS_QUESTIONS === 'undefined') return showFallback('NIS questions file not loaded.');
-          questionPool = Array.isArray(NIS_QUESTIONS) ? NIS_QUESTIONS.slice() : [];
-          break;
-        case 'nfs':
-          if (typeof FIRE_QUESTIONS === 'undefined') return showFallback('Fire Service questions file not loaded.');
-          questionPool = Array.isArray(FIRE_QUESTIONS) ? FIRE_QUESTIONS.slice() : [];
-          break;
-        case 'nscdc':
-          if (typeof CIVIL_DEFENCE_QUESTIONS === 'undefined') return showFallback('Civil Defence questions file not loaded.');
-          questionPool = Array.isArray(CIVIL_DEFENCE_QUESTIONS) ? CIVIL_DEFENCE_QUESTIONS.slice() : [];
-          break;
-        case 'ncos':
-          if (typeof CORRECTIONAL_QUESTIONS === 'undefined') return showFallback('Correctional questions file not loaded.');
-          questionPool = Array.isArray(CORRECTIONAL_QUESTIONS) ? CORRECTIONAL_QUESTIONS.slice() : [];
-          break;
-        default:
-          return showFallback('Unknown category.');
-      }
-
-      if (questionPool.length === 0) return showFallback('Question pool is empty for this category.');
-
-      // choose 50 at random
-      examQuestions = pickRandom(questionPool, Math.min(50, questionPool.length));
-      answers = {};
-      currentIndex = 0;
-      timeLeft = 30 * 60;
-      warnCount = 0;
-      warnCountEl.textContent = warnCount;
-
-      // UI
-      hide(landing);
-      hide(result);
-      hide(fallback);
-      show(exam);
-      examCategoryEl.textContent = activeCard.querySelector('.cat-title').textContent;
-      renderQuestion();
-      startTimer();
-      await startMedia();
-      loadFaceModels();
-    });
+    optionsList.appendChild(optBtn);
   });
 
-  // fallback display
-  function showFallback(msg) {
-    document.getElementById('fallbackText').textContent = msg;
-    hide(landing);
-    hide(exam);
-    hide(result);
-    show(fallback);
+  document.getElementById("prevBtn").disabled = currentQuestionIndex === 0;
+  document.getElementById("nextBtn").classList.toggle("hidden", currentQuestionIndex === allQuestions.length - 1);
+  document.getElementById("submitBtn").classList.toggle("hidden", currentQuestionIndex < allQuestions.length - 1);
+}
+
+// Select an option
+function selectOption(opt) {
+  selectedAnswers[currentQuestionIndex] = opt;
+  renderQuestion();
+}
+
+// Navigation
+document.getElementById("nextBtn").onclick = () => {
+  if (currentQuestionIndex < allQuestions.length - 1) {
+    currentQuestionIndex++;
+    renderQuestion();
   }
-
-  // pick random subset
-  function pickRandom(arr, k) {
-    const copy = arr.slice();
-    const out = [];
-    while (out.length < k && copy.length) {
-      const i = Math.floor(Math.random() * copy.length);
-      out.push(copy.splice(i, 1)[0]);
-    }
-    return out;
+};
+document.getElementById("prevBtn").onclick = () => {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    renderQuestion();
   }
+};
 
-  // render question
-  function renderQuestion() {
-    const q = examQuestions[currentIndex];
-    if (!q) return;
-    qIndicator.textContent = `Question ${currentIndex + 1} of ${examQuestions.length}`;
-    questionText.innerHTML = `<span>${escapeHtml(q.question)}</span>`;
-    optionsList.innerHTML = '';
-    const opts = q.options || {};
-    ['A', 'B', 'C', 'D'].forEach(letter => {
-      if (!opts[letter]) return;
-      const el = document.createElement('div');
-      el.className = 'option';
-      el.dataset.opt = letter;
-      el.innerHTML = `<strong>${letter}.</strong> ${escapeHtml(opts[letter])}`;
-      if (answers[q.id] === letter) el.classList.add('selected');
-      el.addEventListener('click', () => {
-        Array.from(optionsList.children).forEach(c => c.classList.remove('selected'));
-        el.classList.add('selected');
-        answers[q.id] = letter;
-      });
-      optionsList.appendChild(el);
-    });
+// Timer
+function startTimer() {
+  timerInterval = setInterval(() => {
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+      submitExam();
+      return;
+    }
+    timeRemaining--;
+    const m = Math.floor(timeRemaining / 60);
+    const s = timeRemaining % 60;
+    timerDisplay.textContent = `${m}:${s < 10 ? "0" + s : s}`;
+  }, 1000);
+}
 
-    prevBtn.disabled = currentIndex === 0;
-    if (currentIndex === examQuestions.length - 1) {
-      hide(nextBtn);
-      show(submitBtn);
-    } else {
-      show(nextBtn);
-      hide(submitBtn);
-    }
-  }
+// Submit exam
+function submitExam() {
+  clearInterval(timerInterval);
+  exam.classList.add("hidden");
+  result.classList.remove("hidden");
 
-  // navigation
-  prevBtn.addEventListener('click', () => {
-    if (currentIndex > 0) {
-      currentIndex--;
-      renderQuestion();
-    }
-  });
-  nextBtn.addEventListener('click', () => {
-    if (currentIndex < examQuestions.length - 1) {
-      currentIndex++;
-      renderQuestion();
-    }
-  });
-  submitBtn.addEventListener('click', () => {
-    if (confirm('Submit exam now?')) finishExam('User submitted');
+  let score = 0;
+  const missed = [];
+
+  allQuestions.forEach((q, i) => {
+    const userAns = selectedAnswers[i];
+    if (userAns === q.answer) score++;
+    else missed.push({ ...q, yourAnswer: userAns || "—" });
   });
 
-  // timer
-  function startTimer() {
-    updateTimer();
-    if (timerId) clearInterval(timerId);
-    timerId = setInterval(() => {
-      timeLeft--;
-      updateTimer();
-      if (timeLeft <= 0) {
-        clearInterval(timerId);
-        finishExam('Time elapsed');
-      }
-    }, 1000);
-  }
+  document.getElementById("resultSummary").innerHTML = `
+    <h3>Score: ${score}/${allQuestions.length}</h3>
+    <p>Percentage: ${(score / allQuestions.length * 100).toFixed(1)}%</p>
+  `;
 
-  function updateTimer() {
-    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-    const s = (timeLeft % 60).toString().padStart(2, '0');
-    timerEl.textContent = `${m}:${s}`;
-  }
+  const missedDiv = document.getElementById("missedContainer");
+  missedDiv.innerHTML = missed.map(m => `
+    <div class="missed-q">
+      <p><strong>${m.question}</strong></p>
+      <p>Your answer: ${m.yourAnswer}</p>
+      <p>Correct: ${m.answer}</p>
+    </div>
+  `).join("");
+}
 
-  // finish exam
-  function finishExam(reason) {
-    stopMedia();
-    if (timerId) clearInterval(timerId);
-    let correct = 0;
-    const missed = [];
-    examQuestions.forEach(q => {
-      const ans = answers[q.id];
-      if (ans && ans === q.answer) correct++;
-      else missed.push({ q, given: ans || null });
-    });
-    const percent = Math.round((correct / examQuestions.length) * 100);
-    resultSummary.innerHTML = `
-      <div>Answered: ${Object.keys(answers).length}/${examQuestions.length}</div>
-      <div>Correct: ${correct}</div>
-      <div>Score: ${percent}%</div>
-      <div style="margin-top:6px;color:var(--muted);font-size:13px;">
-        Auto-submit reason: ${escapeHtml(reason)}
-      </div>
-    `;
+// Retake button
+document.getElementById("retakeBtn").onclick = () => {
+  window.location.reload();
+};
 
-    if (missed.length === 0) {
-      missedContainer.innerHTML = `<p>All correct — excellent!</p>`;
-    } else {
-      const ol = document.createElement('ol');
-      missed.forEach(m => {
-        const li = document.createElement('li');
-        li.style.marginBottom = '10px';
-        li.innerHTML = `
-          <div style="font-weight:700">${escapeHtml(m.q.question)}</div>
-          <div>Correct: <strong>${m.q.answer}. ${escapeHtml(m.q.options?.[m.q.answer] || '')}</strong></div>
-          <div>Your answer: <em>${escapeHtml(m.given || 'No answer')}</em></div>
-          ${m.q.explanation ? `<div style="color:var(--muted);font-size:13px;">Explanation: ${escapeHtml(m.q.explanation)}</div>` : ''}
-        `;
-        ol.appendChild(li);
-      });
-      missedContainer.innerHTML = '';
-      missedContainer.appendChild(ol);
+// Start exam flow
+document.querySelectorAll(".start-btn").forEach(btn => {
+  btn.addEventListener("click", async e => {
+    const card = e.target.closest(".cat-card");
+    const key = card.dataset.key;
+    currentCategory = key;
+
+    landing.classList.add("hidden"); // full page exam view
+    exam.classList.remove("hidden");
+
+    const ok = await loadQuestions(key);
+    if (!ok) {
+      exam.classList.add("hidden");
+      fallback.classList.remove("hidden");
+      document.getElementById("fallbackText").textContent =
+        `The question file for "${key.toUpperCase()}" could not be loaded.`;
+      return;
     }
 
-    hide(exam);
-    show(result);
-  }
-
-  // retake button
-  retakeBtn.addEventListener('click', () => {
-    hide(result);
-    show(landing);
-    catCards.forEach(c => {
-      c.classList.remove('active');
-      c.querySelector('.start-btn').classList.add('hidden');
-    });
-    stopMedia();
+    currentQuestionIndex = 0;
+    selectedAnswers = {};
+    timeRemaining = 30 * 60;
+    renderQuestion();
+    startTimer();
   });
+});
 
-  // -------------------------
-  // Media detection
-  // -------------------------
-  async function startMedia() {
-    try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: 'user' } });
-      if (mediaStream.getVideoTracks().length) {
-        previewVideo.srcObject = new MediaStream([mediaStream.getVideoTracks()[0]]);
-        show(cameraPreview);
-      }
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaStreamSource(mediaStream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048;
-      src.connect(analyser);
-
-      detectionInterval = setInterval(async () => {
-        detectNoise();
-        await detectFaces();
-      }, 900);
-    } catch (e) {
-      console.warn('media failed', e);
-      alert('Camera & microphone access denied. Monitoring disabled but you can still take the test.');
-    }
-  }
-
-  function stopMedia() {
-    if (detectionInterval) clearInterval(detectionInterval);
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(t => t.stop());
-      mediaStream = null;
-    }
-    if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; }
-    previewVideo.srcObject = null;
-    hide(cameraPreview);
-  }
-
-  // noise detection
-  function detectNoise() {
-    if (!analyser) return;
-    const buf = new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(buf);
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-    const rms = Math.sqrt(sum / buf.length);
-    const TH = 0.06;
-    if (rms > TH) registerWarning('Noise detected');
-  }
-
-  // face-api
-  let faceModelLoaded = false;
-  async function loadFaceModels() {
-    try {
-      await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/');
-      faceModelLoaded = true;
-    } catch (e) {
-      console.warn('face model load failed', e);
-    }
-  }
-
-  let lastCenter = null;
-  async function detectFaces() {
-    if (!faceModelLoaded) return;
-    if (!previewVideo || previewVideo.readyState < 2) return;
-    try {
-      const res = await faceapi.detectAllFaces(previewVideo, new faceapi.TinyFaceDetectorOptions());
-      const count = res.length;
-      if (count === 0) registerWarning('Face not detected');
-      else if (count > 1) registerWarning('Multiple faces detected');
-      else {
-        const box = res[0].box;
-        const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-        if (lastCenter) {
-          const dx = Math.abs(center.x - lastCenter.x);
-          const dy = Math.abs(center.y - lastCenter.y);
-          const move = Math.sqrt(dx * dx + dy * dy);
-          const MOVE_TH = (previewVideo.videoWidth || 320) * 0.14;
-          if (move > MOVE_TH) registerWarning('Sudden movement detected');
-        }
-        lastCenter = center;
-      }
-    } catch (e) {
-      console.warn('face detect error', e);
-    }
-  }
-
-  // warnings
-  function registerWarning(msg) {
-    const now = Date.now();
-    const prev = recentWarnings.find(r => r.msg === msg);
-    if (prev && (now - prev.ts) < 3500) return;
-    recentWarnings.push({ msg, ts: now });
-
-    warnCount++;
-    warnCountEl.textContent = warnCount;
-    showInlineWarning(`${msg} — warning ${warnCount}/3`);
-    beep();
-
-    if (warnCount >= 3) {
-      finishExam('3 warnings reached (' + msg + ')');
-    }
-  }
-
-  function showInlineWarning(text) {
-    const el = document.createElement('div');
-    el.style.position = 'fixed';
-    el.style.left = '50%';
-    el.style.top = '16px';
-    el.style.transform = 'translateX(-50%)';
-    el.style.background = 'linear-gradient(90deg,#ff8a8a,#ff5252)';
-    el.style.color = '#021018';
-    el.style.padding = '8px 12px';
-    el.style.borderRadius = '8px';
-    el.style.fontWeight = '700';
-    el.style.zIndex = '99999';
-    el.textContent = text;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2000);
-  }
-
-  // clicking preview toggles show/hide
-  cameraPreview.addEventListener('click', () => cameraPreview.classList.toggle('hidden'));
-
-  // keyboard nav
-  document.addEventListener('keydown', (e) => {
-    if (exam.classList.contains('hidden')) return;
-    if (e.key === 'ArrowRight') nextBtn.click();
-    if (e.key === 'ArrowLeft') prevBtn.click();
+// Category selection toggle
+document.querySelectorAll(".select-btn").forEach(btn => {
+  btn.addEventListener("click", e => {
+    document.querySelectorAll(".start-btn").forEach(b => b.classList.add("hidden"));
+    e.target.classList.add("hidden");
+    e.target.nextElementSibling.classList.remove("hidden");
   });
-
-})();
+});
