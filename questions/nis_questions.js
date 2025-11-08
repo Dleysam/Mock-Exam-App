@@ -1,3 +1,4 @@
+// inside questions/nis_questions.js
 const NIS_QUESTIONS = [
   {
     "id": 1,
