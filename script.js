@@ -1,13 +1,18 @@
-import nisQuestions from './questions/nis_questions.js';
-import fireServiceQuestions from './questions/fire_service_questions.js';
-import civilDefenceQuestions from './questions/civil_defence_questions.js';
-import correctionalQuestions from './questions/correctional_questions.js';
 /* Updated script.js
    - Start button appears inside selected card
    - Responsive 2x2 / stacked layout
    - Loads 50 random questions from chosen file (NIS present)
    - One question per page, timer, warnings, auto-submit
 */
+/* (Removed imports on purpose)
+   script.js expects global question arrays:
+   - NIS_QUESTIONS
+   - FIRE_QUESTIONS
+   - CIVIL_DEFENCE_QUESTIONS
+   - CORRECTIONAL_QUESTIONS
+*/
+
+// rest of script.js continues unchanged...
 
 (() => {
   // DOM refs
