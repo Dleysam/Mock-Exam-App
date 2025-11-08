@@ -1,4 +1,5 @@
-const fireServiceQuestions = [
+// inside questions/fire_service_questions.js
+const FIRE_QUESTIONS = [ ... ];
   {
     question: "Choose the correct spelling:",
     options: ["Accomodation", "Accommodation", "Acommodation", "Acommoddation"],
