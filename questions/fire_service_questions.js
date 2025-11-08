@@ -1,5 +1,5 @@
 // inside questions/fire_service_questions.js
-const FIRE_SERVICE_QUESTIONS = [ ... ];
+const FIRE_SERVICE_QUESTIONS = [
   {
     question: "Choose the correct spelling:",
     options: ["Accomodation", "Accommodation", "Acommodation", "Acommoddation"],
