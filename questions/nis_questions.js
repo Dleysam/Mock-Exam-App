@@ -1,13 +1,5 @@
 const NIS_QUESTIONS = [
   {
-    id: 1,
-    question: "What is the capital of Nigeria?",
-    options: { A: "Lagos", B: "Abuja", C: "Kano", D: "Ibadan" },
-    answer: "B"
-  },
-  // ...more
-];
-  {
     "id": 1,
     "question": "What is the capital of Nigeria?",
     "options": {
