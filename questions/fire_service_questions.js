@@ -770,15 +770,4 @@ const FIRE_SERVICE_QUESTIONS = [
     },
     "answer": "B"
   },
-  {
-    "id": 71,
-    "question": "A reflective vest is worn for:",
-    "options": {
-      "A": "Comfort",
-      "B": "Visibility",
-      "C": "Rank identification",
-      "D": "Decoration"
-    },
-    "answer": "B"
-  }
 ];   
