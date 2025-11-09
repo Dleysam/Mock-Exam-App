@@ -781,5 +781,4 @@ const FIRE_SERVICE_QUESTIONS = [
     },
     "answer": "B"
   }
-];
-    
+];   
