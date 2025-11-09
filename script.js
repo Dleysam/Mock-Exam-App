@@ -106,7 +106,7 @@
           break;
         case 'nfs':
           if (typeof FIRE_QUESTIONS === 'undefined') return showFallback('Fire Service questions file not loaded.');
-          questionPool = Array.isArray(FIRE_QUESTIONS) ? FIRE_QUESTIONS.slice() : [];
+          questionPool = Array.isArray(FIRE_SERVICE_QUESTIONS) ? FIRE_SERVICE_QUESTIONS.slice() : [];
           break;
         case 'nscdc':
           if (typeof CIVIL_DEFENCE_QUESTIONS === 'undefined') return showFallback('Civil Defence questions file not loaded.');
