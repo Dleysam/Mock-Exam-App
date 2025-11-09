@@ -108,7 +108,6 @@
   hide(result);
   hide(fallback);
   show(exam);
-  ...
 });
 
       // load question pool based on chosenKey
