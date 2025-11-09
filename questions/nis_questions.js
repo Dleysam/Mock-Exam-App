@@ -239,9 +239,8 @@ const NIS_QUESTIONS = [
     },
     "answer": "D",
     "explanation": "There is no passport type called 'Visitor’s Passport.'"
-  }
-];
-{
+  }, // <-- Comma added here
+  {
     "id": 21,
     "question": "Which Nigerian leader declared the War Against Indiscipline (WAI)?",
     "options": {
@@ -600,9 +599,8 @@ const NIS_QUESTIONS = [
     },
     "answer": "A",
     "explanation": "Caroline Adepoju was appointed Comptroller General of NIS in 2023."
-  }
-];
-{
+  }, // <-- Comma added here
+  {
     "id": 51,
     "question": "Which of the following is the core duty of the Nigeria Immigration Service?",
     "options": {
