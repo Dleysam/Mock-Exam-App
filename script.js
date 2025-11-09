@@ -99,7 +99,7 @@
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
-    startBtn.addEventListener('click', async () => {
+startBtn.addEventListener('click', async () => {
   if (!chosenKey) return alert('Choose a category first.');
 
   // load question pool based on chosenKey
@@ -108,6 +108,7 @@
   hide(result);
   hide(fallback);
   show(exam);
+  ...
 });
 
       // load question pool based on chosenKey
