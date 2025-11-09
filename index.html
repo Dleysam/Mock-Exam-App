@@ -113,12 +113,13 @@
   <!-- face-api.js -->
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
-  <!-- question banks (NIS already present) -->
-<script src="script.js">
+ <!-- Load question banks first -->
 <script src="questions/nis_questions.js"></script>
 <script src="questions/fire_service_questions.js"></script>
 <script src="questions/civil_defence_questions.js"></script>
 <script src="questions/correctional_questions.js"></script>
-  </script>
+
+<!-- Then load the main app script last -->
+<script src="script.js"></script>
 </body>
         </html>
