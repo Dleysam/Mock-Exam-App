@@ -769,5 +769,5 @@ const FIRE_SERVICE_QUESTIONS = [
       "D": "Cross in the middle of traffic"
     },
     "answer": "B"
-  },
+  }
 ];   
