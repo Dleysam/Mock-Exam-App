@@ -68,8 +68,8 @@
   }
 
   // helpers
-  function show(el) { el.classList.remove('hidden'); }
-  function hide(el) { el.classList.add('hidden'); }
+  function show(el) { el.classList.remove('none'); }
+  function hide(el) { el.classList.add('block'); }
   function escapeHtml(s = '') {
     return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
