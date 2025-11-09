@@ -100,7 +100,16 @@
     });
 
     startBtn.addEventListener('click', async () => {
-      if (!chosenKey) return alert('Choose a category first.');
+  if (!chosenKey) return alert('Choose a category first.');
+
+  // load question pool based on chosenKey
+  ...
+  hide(landing);
+  hide(result);
+  hide(fallback);
+  show(exam);
+  ...
+});
 
       // load question pool based on chosenKey
       switch (chosenKey) {
