@@ -82,68 +82,69 @@
   // Category card selection
   // -------------------------
   catCards.forEach(card => {
-    const selectBtn = card.querySelector('.select-btn');
-    const startBtn = card.querySelector('.start-btn');
+  const selectBtn = card.querySelector('.select-btn');
+  const startBtn = card.querySelector('.start-btn');
 
-    selectBtn.addEventListener('click', () => {
-      // clear previous
-      catCards.forEach(c => {
-        c.classList.remove('active');
-        c.querySelector('.start-btn').classList.add('hidden');
-      });
-
-      card.classList.add('active');
-      startBtn.classList.remove('hidden');
-      activeCard = card;
-      chosenKey = card.dataset.key;
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  selectBtn.addEventListener('click', () => {
+    catCards.forEach(c => {
+      c.classList.remove('active');
+      c.querySelector('.start-btn').classList.add('hidden');
     });
+    card.classList.add('active');
+    startBtn.classList.remove('hidden');
+    activeCard = card;
+    chosenKey = card.dataset.key;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 
-startBtn.addEventListener('click', async () => {
-  if (!chosenKey) return alert('Choose a category first.');
+  // ✅ this is the correct complete version:
+  startBtn.addEventListener('click', async () => {
+    if (!chosenKey) return alert('Choose a category first.');
 
-  // load question pool based on chosenKey
-  ...
-  hide(landing);
-  hide(result);
-  hide(fallback);
-  show(exam);
-  ...
+    // load question pool based on chosenKey
+    switch (chosenKey) {
+      case 'nis':
+        if (typeof NIS_QUESTIONS === 'undefined') return showFallback('NIS questions file not loaded.');
+        questionPool = Array.isArray(NIS_QUESTIONS) ? NIS_QUESTIONS.slice() : [];
+        break;
+      case 'nfs':
+        if (typeof FIRE_QUESTIONS === 'undefined') return showFallback('Fire Service questions file not loaded.');
+        questionPool = Array.isArray(FIRE_QUESTIONS) ? FIRE_QUESTIONS.slice() : [];
+        break;
+      case 'nscdc':
+        if (typeof CIVIL_DEFENCE_QUESTIONS === 'undefined') return showFallback('Civil Defence questions file not loaded.');
+        questionPool = Array.isArray(CIVIL_DEFENCE_QUESTIONS) ? CIVIL_DEFENCE_QUESTIONS.slice() : [];
+        break;
+      case 'ncos':
+        if (typeof CORRECTIONAL_QUESTIONS === 'undefined') return showFallback('Correctional questions file not loaded.');
+        questionPool = Array.isArray(CORRECTIONAL_QUESTIONS) ? CORRECTIONAL_QUESTIONS.slice() : [];
+        break;
+      default:
+        return showFallback('Unknown category.');
+    }
+
+    if (questionPool.length === 0) return showFallback('Question pool is empty for this category.');
+
+    // choose 50 at random
+    examQuestions = pickRandom(questionPool, Math.min(50, questionPool.length));
+    answers = {};
+    currentIndex = 0;
+    timeLeft = 30 * 60;
+    warnCount = 0;
+    warnCountEl.textContent = warnCount;
+
+    hide(landing);
+    hide(result);
+    hide(fallback);
+    show(exam);
+    examCategoryEl.textContent = activeCard.querySelector('.cat-title').textContent;
+    renderQuestion();
+    startTimer();
+    await startMedia();
+    loadFaceModels();
+  });
 });
-
-      // load question pool based on chosenKey
-      switch (chosenKey) {
-        case 'nis':
-          if (typeof NIS_QUESTIONS === 'undefined') return showFallback('NIS questions file not loaded.');
-          questionPool = Array.isArray(NIS_QUESTIONS) ? NIS_QUESTIONS.slice() : [];
-          break;
-        case 'nfs':
-          if (typeof FIRE_QUESTIONS === 'undefined') return showFallback('Fire Service questions file not loaded.');
-          questionPool = Array.isArray(FIRE_QUESTIONS) ? FIRE_QUESTIONS.slice() : [];
-          break;
-        case 'nscdc':
-          if (typeof CIVIL_DEFENCE_QUESTIONS === 'undefined') return showFallback('Civil Defence questions file not loaded.');
-          questionPool = Array.isArray(CIVIL_DEFENCE_QUESTIONS) ? CIVIL_DEFENCE_QUESTIONS.slice() : [];
-          break;
-        case 'ncos':
-          if (typeof CORRECTIONAL_QUESTIONS === 'undefined') return showFallback('Correctional questions file not loaded.');
-          questionPool = Array.isArray(CORRECTIONAL_QUESTIONS) ? CORRECTIONAL_QUESTIONS.slice() : [];
-          break;
-        default:
-          return showFallback('Unknown category.');
-      }
-
-      if (questionPool.length === 0) return showFallback('Question pool is empty for this category.');
-
-      // choose 50 at random
-      examQuestions = pickRandom(questionPool, Math.min(50, questionPool.length));
-      answers = {};
-      currentIndex = 0;
-      timeLeft = 30 * 60;
-      warnCount = 0;
-      warnCountEl.textContent = warnCount;
-
-      // UI
+   //UI
       hide(landing);
       hide(result);
       hide(fallback);
