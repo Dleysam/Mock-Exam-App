@@ -96,3 +96,9 @@ body{
   .grid-cats{ grid-template-columns:1fr; }
   #cameraPreview{ width:120px; height:90px; right:10px; bottom:120px; }
           }
+/* style.css */
+.hidden {
+    display: none !important; /* Forces the element and its content to be completely hidden */
+    visibility: hidden;
+}
+
