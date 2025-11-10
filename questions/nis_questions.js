@@ -593,12 +593,12 @@ const NIS_QUESTIONS = [
     "question": "Who is the current Comptroller General of NIS (as of 2025)?",
     "options": {
       "A": "Caroline Adepoju",
-      "B": "Muhammad Babandede",
+      "B": "Kemi Nanna Nandap",
       "C": "David Paradang",
       "D": "Ja’afaru Ahmed"
     },
-    "answer": "A",
-    "explanation": "Caroline Adepoju was appointed Comptroller General of NIS in 2023."
+    "answer": "B",
+    "explanation": "Kemi Nanna Nandap. She was appointed by Bola Ahmed Tinubu effective 1 March 2024."
   }, // <-- Comma added here
   {
     "id": 51,
