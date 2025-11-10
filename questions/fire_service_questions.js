@@ -1,5 +1,5 @@
 // inside questions/fire_service_questions.js
-FIRE_SERVICE_QUESTIONS = [ // <--- NO 'const' HERE
+const FIRE_SERVICE_QUESTIONS = [ 
   {
     "id": 1,
     "question": "Choose the correct spelling:",
@@ -771,4 +771,3 @@ FIRE_SERVICE_QUESTIONS = [ // <--- NO 'const' HERE
     "answer": "B"
   }
 ];   
-      // No other changes are needed!
