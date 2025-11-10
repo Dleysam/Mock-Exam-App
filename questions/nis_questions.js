@@ -426,11 +426,11 @@ const NIS_QUESTIONS = [
     "options": {
       "A": "1978",
       "B": "1980",
-      "C": "1975",
+      "C": "2024",
       "D": "1982"
     },
-    "answer": "A",
-    "explanation": "The anthem 'Arise, O Compatriots' was adopted in 1978."
+    "answer": "C",
+    "explanation": "Nigerian National Anthem, 'Nigeria, We Hail Thee,' was adopted in May 29 2024."
   },
   {
     "id": 37,
