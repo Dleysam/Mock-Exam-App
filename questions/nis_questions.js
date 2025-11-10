@@ -165,7 +165,7 @@ const NIS_QUESTIONS = [
       "C": "5",
       "D": "6"
     },
-    "answer": "C",
+    "answer": "B",
     "explanation": "Nigeria shares borders with 4 countries: Benin, Niger, Chad, and Cameroon."
   },
   {
