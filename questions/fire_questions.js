@@ -1,5 +1,5 @@
 // inside questions/fire_service_questions.js
-const FIRE_SERVICE_QUESTIONS = [ 
+const FIRE_QUESTIONS = [ 
   {
     "id": 1,
     "question": "Choose the correct spelling:",
