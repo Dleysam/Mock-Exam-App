@@ -422,7 +422,7 @@ const NIS_QUESTIONS = [
   },
   {
     "id": 36,
-    "question": "What year was the current Nigerian national anthem adopted?",
+    "question": "What year was the current Nigerian national anthem readopted?",
     "options": {
       "A": "1978",
       "B": "1980",
@@ -430,7 +430,7 @@ const NIS_QUESTIONS = [
       "D": "1982"
     },
     "answer": "C",
-    "explanation": "Nigerian National Anthem, 'Nigeria, We Hail Thee,' was adopted in May 29 2024."
+    "explanation": "Nigerian National Anthem, 'Nigeria, We Hail Thee,' was adopted in 1978 and was readopted in May 29 2024."
   },
   {
     "id": 37,
@@ -664,13 +664,13 @@ const NIS_QUESTIONS = [
     "id": 56,
     "question": "The present Comptroller General of NIS is?",
     "options": {
-      "A": "Umar Dahiru",
+      "A": "Kemi Nanna Nandap",
       "B": "Caroline Adepoju",
       "C": "Boniface Cosmos",
       "D": "David Paradang"
     },
-    "answer": "B",
-    "explanation": "Caroline Wura-Ola Adepoju is the current Comptroller General of Immigration."
+    "answer": "A",
+    "explanation": "Kemi Nanna Nandap is the current Comptroller General of Immigration."
   },
   {
     "id": 57,
