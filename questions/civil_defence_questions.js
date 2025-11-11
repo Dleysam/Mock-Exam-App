@@ -38,9 +38,9 @@
   {
     id: 6,
     question: "What is the motto of the Nigeria Security and Civil Defence Corps?",
-    options: { A: "Service to Humanity", B: "Defending the Nation", C: "Peace and Order", D: "Security for All" },
+    options: { A: "Service to Humanity", B: "Defending the Nation, Securing the Future", C: "Peace and Order", D: "Security for All" },
     answer: "B",
-    explanation: "The NSCDC’s motto is 'Defending the Nation'."
+    explanation: "The NSCDC’s motto is 'Defending the Nation, Securing the Future'."
   },
   {
     id: 7,
@@ -375,8 +375,8 @@
     id: 54,
     question: "What is the name of the NSCDC’s training academy?",
     options: { A: "Civil Defence College", B: "NSCDC Training School", C: "Peace Academy", D: "Command and Staff College" },
-    answer: "D",
-    explanation: "The NSCDC Command and Staff College provides training for officers."
+    answer: "A",
+    explanation: "Civil Defence College located in Katstina is often cited as the primary initial training institution."
   },
   {
     id: 55,
